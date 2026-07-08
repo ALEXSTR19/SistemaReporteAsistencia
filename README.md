@@ -41,14 +41,14 @@ SOURCE C:/xampp/htdocs/smartpss_php_sistema/sql/install.sql;
 
 O copia y pega el contenido de `sql/install.sql`.
 
-4. Instala Dompdf para reportes PDF:
+4. Instala FPDF para reportes PDF:
 
 ```bash
 cd C:\xampp\htdocs\smartpss_php_sistema
 composer install
 ```
 
-Si no tienes Composer, instala Composer para Windows y vuelve a ejecutar el comando.
+Si no tienes Composer, instala Composer para Windows y vuelve a ejecutar el comando. Esto instalará la librería FPDF declarada en `composer.json`.
 
 5. Abre en el navegador:
 

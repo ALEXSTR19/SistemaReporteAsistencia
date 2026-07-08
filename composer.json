@@ -1,5 +1,8 @@
 {
+  "name": "smartpss/sistema-reporte-asistencia",
+  "description": "Sistema PHP para reportes de asistencia SmartPSS Lite.",
+  "license": "proprietary",
   "require": {
-    "dompdf/dompdf": "^3.0"
+    "setasign/fpdf": "^1.8"
   }
 }
