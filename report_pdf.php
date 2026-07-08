@@ -49,19 +49,19 @@ if ($q !== '') {
 
 $rows = array_slice($rows, 0, 5000);
 
-$autoload = __DIR__ . '/vendor/autoload.php';
+$fpdfPath = __DIR__ . '/lib/fpdf/fpdf.php';
 
-if (!file_exists($autoload)) {
+if (!file_exists($fpdfPath)) {
     header('Content-Type: text/html; charset=UTF-8');
-    echo '<h3>Falta instalar FPDF</h3><p>Ejecuta en esta carpeta:</p><pre>composer install</pre>';
+    echo '<h3>Falta la librería FPDF</h3><p>Coloca <code>fpdf.php</code> en <code>lib/fpdf/</code>.</p>';
     exit;
 }
 
-require_once $autoload;
+require_once $fpdfPath;
 
 if (!class_exists('FPDF')) {
     header('Content-Type: text/html; charset=UTF-8');
-    echo '<h3>No se encontró la librería FPDF</h3><p>Verifica que composer.json incluya <code>setasign/fpdf</code> y ejecuta:</p><pre>composer install</pre>';
+    echo '<h3>No se encontró la clase FPDF</h3><p>Verifica que <code>lib/fpdf/fpdf.php</code> contenga la librería FPDF.</p>';
     exit;
 }
 
