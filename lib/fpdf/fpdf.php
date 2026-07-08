@@ -32,6 +32,8 @@ class FPDF
     protected array $fillColor = [255, 255, 255];
     protected float $lineWidth = 0.2;
     protected bool $aliasNbPages = false;
+    protected bool $inHeader = false;
+    protected bool $inFooter = false;
 
     public function __construct($orientation = 'P', $unit = 'mm', $format = 'A4')
     {
@@ -73,14 +75,18 @@ class FPDF
     public function AddPage($orientation = '', $format = ''): void
     {
         if ($this->page > 0) {
+            $this->inFooter = true;
             $this->Footer();
+            $this->inFooter = false;
             $this->pages[$this->page - 1] = $this->current;
         }
         $this->page++;
         $this->current = [];
         $this->x = $this->lMargin;
         $this->y = $this->tMargin;
+        $this->inHeader = true;
         $this->Header();
+        $this->inHeader = false;
     }
 
     public function SetTextColor($r, $g = null, $b = null): void
@@ -120,7 +126,7 @@ class FPDF
         if ($w === 0.0) {
             $w = $this->w - $this->rMargin - $this->x;
         }
-        if ($this->autoPageBreak && $this->y + $h > $this->h - $this->bMargin) {
+        if ($this->autoPageBreak && !$this->inHeader && !$this->inFooter && $this->y + $h > $this->h - $this->bMargin) {
             $this->AddPage();
         }
         if ($fill) {
@@ -199,7 +205,9 @@ class FPDF
     public function Output($dest = '', $name = '', $isUTF8 = false): string
     {
         if ($this->page > 0) {
+            $this->inFooter = true;
             $this->Footer();
+            $this->inFooter = false;
             $this->pages[$this->page - 1] = $this->current;
             $this->current = [];
         }
