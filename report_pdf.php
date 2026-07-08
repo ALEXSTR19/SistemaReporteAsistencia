@@ -299,7 +299,6 @@ $pdf->Ln(4);
 $pdf->SetFont('Arial', 'B', 8);
 $pdf->Cell(0, 5, pdf_text('Total de registros: ' . $totalRows), 0, 1, 'L');
 $pdf->SetFont('Arial', '', 8);
-$pdf->MultiCell(0, 5, pdf_text('Las correcciones se aplican desde el sistema y la tabla original de SmartPSS Lite permanece intacta.'));
 
 $pdf->Output('D', 'reporte_asistencia_' . date('Ymd_His') . '.pdf');
 foreach ([$pdf->leftLogo, $pdf->rightLogo] as $logoPath) {
