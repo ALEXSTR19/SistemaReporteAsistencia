@@ -6,6 +6,10 @@ const PDF_MAX_ROWS = 1000;
 const PDF_QUERY_LIMIT = PDF_MAX_ROWS + 1;
 const PDF_LOGO_MAX_BYTES = 250000;
 const PDF_LOGO_MAX_PIXELS = 500;
+const PDF_HEADER_LOGO_WIDTH = 28;
+const PDF_HEADER_LOGO_TOP = 8;
+const PDF_HEADER_LOGO_SIDE_MARGIN = 12;
+const PDF_TABLE_BOTTOM_LIMIT = 190;
 
 $q = trim($_GET['q'] ?? '');
 $from = $_GET['from'] ?? '';
@@ -168,33 +172,42 @@ class AttendanceReportPdf extends FPDF
 
     public function Header(): void
     {
+        $pageWidth = $this->w;
+        $contentLeft = $this->lMargin;
+        $contentRight = $pageWidth - $this->rMargin;
+        $contentWidth = $contentRight - $contentLeft;
+        $rightLogoX = $pageWidth - PDF_HEADER_LOGO_SIDE_MARGIN - PDF_HEADER_LOGO_WIDTH;
+
         if ($this->leftLogo !== null) {
-            $this->Image($this->leftLogo, 12, 8, 28);
+            $this->Image($this->leftLogo, PDF_HEADER_LOGO_SIDE_MARGIN, PDF_HEADER_LOGO_TOP, PDF_HEADER_LOGO_WIDTH);
         }
 
         if ($this->rightLogo !== null) {
-            $this->Image($this->rightLogo, 245, 8, 28);
+            $this->Image($this->rightLogo, $rightLogoX, PDF_HEADER_LOGO_TOP, PDF_HEADER_LOGO_WIDTH);
         }
 
+        $this->x = $contentLeft;
         $this->SetTextColor(31, 78, 121);
         $this->SetFont('Arial', 'B', 16);
-        $this->Cell(0, 7, pdf_text(COMPANY_NAME), 0, 1, 'C');
+        $this->Cell($contentWidth, 7, pdf_text(COMPANY_NAME), 0, 1, 'C');
         $this->SetFont('Arial', 'B', 12);
-        $this->Cell(0, 6, pdf_text('Reporte oficial de asistencia'), 0, 1, 'C');
+        $this->Cell($contentWidth, 6, pdf_text('Reporte oficial de asistencia'), 0, 1, 'C');
         $this->SetTextColor(60, 60, 60);
         $this->SetFont('Arial', '', 8);
-        $this->Cell(0, 5, pdf_text('Periodo: ' . $this->period . ' | Búsqueda: ' . $this->search . ' | Generado: ' . date('Y-m-d H:i:s')), 0, 1, 'C');
+        $this->Cell($contentWidth, 5, pdf_text('Periodo: ' . $this->period . ' | Búsqueda: ' . $this->search . ' | Generado: ' . date('Y-m-d H:i:s')), 0, 1, 'C');
         $this->SetDrawColor(31, 78, 121);
         $this->SetLineWidth(0.6);
-        $this->Line(10, 30, 287, 30);
+        $this->Line($contentLeft, 30, $contentRight, 30);
         $this->Ln(8);
     }
 
     public function Footer(): void
     {
+        $contentLeft = $this->lMargin;
+        $contentRight = $this->w - $this->rMargin;
         $this->SetY(-15);
         $this->SetDrawColor(200, 200, 200);
-        $this->Line(10, $this->GetY(), 287, $this->GetY());
+        $this->Line($contentLeft, $this->GetY(), $contentRight, $this->GetY());
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(100, 100, 100);
         $this->Cell(0, 8, pdf_text(APP_NAME . ' - ' . COMPANY_NAME . ' | Página ' . $this->PageNo() . '/{nb}'), 0, 0, 'C');
@@ -257,7 +270,7 @@ $pdf->SetMargins(10, 10, 10);
 $pdf->SetAutoPageBreak(true, 18);
 $pdf->AddPage();
 
-$widths = [48, 24, 25, 34, 24, 34, 48, 40];
+$widths = [44, 20, 22, 32, 22, 30, 50, 39];
 $pdf->TableHeader($widths);
 $pdf->SetFont('Arial', '', 7);
 $pdf->SetTextColor(35, 35, 35);
@@ -267,7 +280,7 @@ $totalRows = 0;
 while ($row = $st->fetch()) {
     $totalRows++;
 
-    if ($pdf->GetY() > 190) {
+    if ($pdf->GetY() > PDF_TABLE_BOTTOM_LIMIT) {
         $pdf->AddPage();
         $pdf->TableHeader($widths);
         $pdf->SetFont('Arial', '', 7);
