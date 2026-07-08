@@ -1,5 +1,5 @@
 {
-  "require": {
-    "dompdf/dompdf": "^3.0"
-  }
+  "name": "smartpss/sistema-reporte-asistencia",
+  "description": "Sistema PHP para reportes de asistencia SmartPSS Lite.",
+  "license": "proprietary"
 }

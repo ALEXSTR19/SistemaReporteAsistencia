@@ -49,15 +49,98 @@ if ($q !== '') {
 
 $rows = array_slice($rows, 0, 5000);
 
-function pdf_logo_html(string $relativePath): string
-{
-    $path = __DIR__ . '/' . $relativePath;
+$fpdfPath = __DIR__ . '/lib/fpdf/fpdf.php';
 
-    if (!is_file($path)) {
-        return '';
+if (!file_exists($fpdfPath)) {
+    header('Content-Type: text/html; charset=UTF-8');
+    echo '<h3>Falta la librería FPDF</h3><p>Coloca <code>fpdf.php</code> en <code>lib/fpdf/</code>.</p>';
+    exit;
+}
+
+require_once $fpdfPath;
+
+if (!class_exists('FPDF')) {
+    header('Content-Type: text/html; charset=UTF-8');
+    echo '<h3>No se encontró la clase FPDF</h3><p>Verifica que <code>lib/fpdf/fpdf.php</code> contenga la librería FPDF.</p>';
+    exit;
+}
+
+function pdf_text($value): string
+{
+    $text = html_entity_decode((string)$value, ENT_QUOTES, 'UTF-8');
+    $converted = iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text);
+
+    return $converted === false ? preg_replace('/[^\x20-\x7E]/', '', $text) : $converted;
+}
+
+function pdf_truncate(FPDF $pdf, string $text, float $width): string
+{
+    $text = pdf_text($text);
+
+    while ($pdf->GetStringWidth($text) > ($width - 2) && strlen($text) > 0) {
+        $text = substr($text, 0, -1);
     }
 
-    return '<img src="file://' . h($path) . '" width="90" alt="Logo">';
+    return $text;
+}
+
+class AttendanceReportPdf extends FPDF
+{
+    public string $period = '';
+    public string $search = '';
+    public int $totalRows = 0;
+
+    public function Header(): void
+    {
+        $leftLogo = __DIR__ . '/assets/logo_left.png';
+        $rightLogo = __DIR__ . '/assets/logo_right.png';
+
+        if (is_file($leftLogo)) {
+            $this->Image($leftLogo, 12, 8, 28);
+        }
+
+        if (is_file($rightLogo)) {
+            $this->Image($rightLogo, 245, 8, 28);
+        }
+
+        $this->SetTextColor(31, 78, 121);
+        $this->SetFont('Arial', 'B', 16);
+        $this->Cell(0, 7, pdf_text(COMPANY_NAME), 0, 1, 'C');
+        $this->SetFont('Arial', 'B', 12);
+        $this->Cell(0, 6, pdf_text('Reporte oficial de asistencia'), 0, 1, 'C');
+        $this->SetTextColor(60, 60, 60);
+        $this->SetFont('Arial', '', 8);
+        $this->Cell(0, 5, pdf_text('Periodo: ' . $this->period . ' | Búsqueda: ' . $this->search . ' | Generado: ' . date('Y-m-d H:i:s')), 0, 1, 'C');
+        $this->SetDrawColor(31, 78, 121);
+        $this->SetLineWidth(0.6);
+        $this->Line(10, 30, 287, 30);
+        $this->Ln(8);
+    }
+
+    public function Footer(): void
+    {
+        $this->SetY(-15);
+        $this->SetDrawColor(200, 200, 200);
+        $this->Line(10, $this->GetY(), 287, $this->GetY());
+        $this->SetFont('Arial', '', 8);
+        $this->SetTextColor(100, 100, 100);
+        $this->Cell(0, 8, pdf_text(APP_NAME . ' - ' . COMPANY_NAME . ' | Página ' . $this->PageNo() . '/{nb}'), 0, 0, 'C');
+    }
+
+    public function TableHeader(array $widths): void
+    {
+        $headers = ['Empleado', 'ID', 'Tarjeta', 'Fecha/Hora', 'Estado', 'Método', 'Equipo', 'IP'];
+        $this->SetFillColor(234, 241, 248);
+        $this->SetTextColor(20, 45, 70);
+        $this->SetDrawColor(180, 190, 200);
+        $this->SetFont('Arial', 'B', 8);
+
+        foreach ($headers as $i => $header) {
+            $this->Cell($widths[$i], 7, pdf_text($header), 1, 0, 'C', true);
+        }
+
+        $this->Ln();
+    }
 }
 
 $period = 'Todos los registros';
@@ -69,97 +152,54 @@ if ($from !== '' && $to !== '') {
     $period = 'Hasta ' . $to;
 }
 
-ob_start();
-?>
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<style>
-@page { margin: 24px 24px 40px 24px; }
-body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 10px; color: #222; }
-.header { border-bottom: 2px solid #1f4e79; padding-bottom: 8px; margin-bottom: 12px; }
-.logos { width: 100%; border-collapse: collapse; }
-.logos td { border: 0; vertical-align: middle; }
-.title { text-align: center; }
-.title h2 { margin: 0; color: #1f4e79; font-size: 18px; }
-.title p { margin: 3px 0; font-size: 11px; }
-table.report { width: 100%; border-collapse: collapse; table-layout: fixed; }
-table.report th, table.report td { border: 1px solid #ccc; padding: 4px; word-wrap: break-word; }
-table.report th { background: #eaf1f8; font-size: 10px; }
-.small { font-size: 9px; color: #555; margin-top: 10px; }
-.footer { position: fixed; bottom: -24px; left: 0; right: 0; text-align: center; font-size: 9px; color: #777; border-top: 1px solid #ccc; padding-top: 5px; }
-</style>
-</head>
-<body>
-<div class="header">
-    <table class="logos">
-        <tr>
-            <td width="20%"><?=pdf_logo_html('assets/logo_left.png')?></td>
-            <td class="title" width="60%">
-                <h2><?=h(COMPANY_NAME)?></h2>
-                <p><strong>Reporte oficial de asistencia</strong></p>
-                <p>Periodo: <?=h($period)?> | Búsqueda: <?=h($q !== '' ? $q : 'Sin filtro')?> | Generado: <?=date('Y-m-d H:i:s')?></p>
-            </td>
-            <td width="20%" style="text-align:right"><?=pdf_logo_html('assets/logo_right.png')?></td>
-        </tr>
-    </table>
-</div>
-<table class="report">
-    <thead>
-        <tr>
-            <th width="18%">Empleado</th>
-            <th width="10%">ID</th>
-            <th width="10%">Tarjeta</th>
-            <th width="14%">Fecha/Hora</th>
-            <th width="10%">Estado</th>
-            <th width="14%">Método</th>
-            <th width="14%">Equipo</th>
-            <th width="10%">IP</th>
-        </tr>
-    </thead>
-    <tbody>
-    <?php foreach ($rows as $row): ?>
-        <tr>
-            <td><?=h($row['PersonName'] ?? '')?></td>
-            <td><?=h($row['PersonID'] ?? '')?></td>
-            <td><?=h($row['PerSonCardNo'] ?? '')?></td>
-            <td><?=h(attendance_datetime($row['AttendanceDateTime'] ?? ''))?></td>
-            <td><?=h(state_label($row['AttendanceState'] ?? ''))?></td>
-            <td><?=h(method_label($row['AttendanceMethod'] ?? ''))?></td>
-            <td><?=h($row['DeviceName'] ?? '')?></td>
-            <td><?=h($row['DeviceIPAddress'] ?? '')?></td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-</table>
-<p class="small">Total de registros: <?=count($rows)?>. Las correcciones se aplican desde el sistema y la tabla original de SmartPSS Lite permanece intacta.</p>
-<div class="footer">Documento generado por <?=h(APP_NAME)?> - <?=h(COMPANY_NAME)?></div>
-</body>
-</html>
-<?php
-$html = ob_get_clean();
-$autoload = __DIR__ . '/vendor/autoload.php';
+$pdf = new AttendanceReportPdf('L', 'mm', 'Letter');
+$pdf->AliasNbPages();
+$pdf->period = $period;
+$pdf->search = $q !== '' ? $q : 'Sin filtro';
+$pdf->totalRows = count($rows);
+$pdf->SetMargins(10, 10, 10);
+$pdf->SetAutoPageBreak(true, 18);
+$pdf->AddPage();
 
-if (!file_exists($autoload)) {
-    header('Content-Type: text/html; charset=UTF-8');
-    echo '<h3>Falta instalar Dompdf</h3><p>Ejecuta en esta carpeta:</p><pre>composer install</pre><p>Vista HTML:</p>' . $html;
-    exit;
+$widths = [48, 24, 25, 34, 24, 34, 48, 40];
+$pdf->TableHeader($widths);
+$pdf->SetFont('Arial', '', 7);
+$pdf->SetTextColor(35, 35, 35);
+$pdf->SetDrawColor(210, 210, 210);
+
+foreach ($rows as $row) {
+    if ($pdf->GetY() > 190) {
+        $pdf->AddPage();
+        $pdf->TableHeader($widths);
+        $pdf->SetFont('Arial', '', 7);
+        $pdf->SetTextColor(35, 35, 35);
+        $pdf->SetDrawColor(210, 210, 210);
+    }
+
+    $values = [
+        $row['PersonName'] ?? '',
+        $row['PersonID'] ?? '',
+        $row['PerSonCardNo'] ?? '',
+        attendance_datetime($row['AttendanceDateTime'] ?? ''),
+        state_label($row['AttendanceState'] ?? ''),
+        method_label($row['AttendanceMethod'] ?? ''),
+        $row['DeviceName'] ?? '',
+        $row['DeviceIPAddress'] ?? '',
+    ];
+
+    foreach ($values as $i => $value) {
+        $align = in_array($i, [1, 2, 3, 4, 7], true) ? 'C' : 'L';
+        $pdf->Cell($widths[$i], 6, pdf_truncate($pdf, (string)$value, $widths[$i]), 1, 0, $align);
+    }
+
+    $pdf->Ln();
 }
 
-require_once $autoload;
+$pdf->Ln(4);
+$pdf->SetFont('Arial', 'B', 8);
+$pdf->Cell(0, 5, pdf_text('Total de registros: ' . count($rows)), 0, 1, 'L');
+$pdf->SetFont('Arial', '', 8);
+$pdf->MultiCell(0, 5, pdf_text('Las correcciones se aplican desde el sistema y la tabla original de SmartPSS Lite permanece intacta.'));
 
-use Dompdf\Dompdf;
-use Dompdf\Options;
-
-$options = new Options();
-$options->set('isRemoteEnabled', true);
-$options->set('isHtml5ParserEnabled', true);
-$options->set('chroot', __DIR__);
-
-$dompdf = new Dompdf($options);
-$dompdf->loadHtml($html, 'UTF-8');
-$dompdf->setPaper('letter', 'landscape');
-$dompdf->render();
-$dompdf->stream('reporte_asistencia_' . date('Ymd_His') . '.pdf', ['Attachment' => true]);
+$pdf->Output('D', 'reporte_asistencia_' . date('Ymd_His') . '.pdf');
 exit;
