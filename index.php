@@ -59,7 +59,7 @@ app_header('Registros de asistencia');
   <div><label>Desde</label><input type="date" name="from" value="<?=h($from)?>"></div>
   <div><label>Hasta</label><input type="date" name="to" value="<?=h($to)?>"></div>
   <div><label>Mostrar eliminados</label><select name="show_deleted"><option value="">No</option><option value="1" <?=$show_deleted?'selected':''?>>Sí</option></select></div>
-  <div><button>Filtrar</button> <a class="btn secondary" href="report_pdf.php?<?=h(http_build_query($_GET))?>">PDF</a> <a class="btn secondary" href="export_excel.php?<?=h(http_build_query($_GET))?>">Excel SmartPSS</a></div>
+  <div><button>Filtrar</button> <a class="btn secondary" href="report_pdf.php?<?=h(http_build_query($_GET))?>">PDF</a> <a class="btn secondary" href="export_excel.php?<?=h(http_build_query($_GET))?>">CSV para Excel</a></div>
 </form>
 </div>
 <div class="card">

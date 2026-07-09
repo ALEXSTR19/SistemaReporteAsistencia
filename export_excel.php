@@ -57,16 +57,17 @@ $sql .= ' ORDER BY x.AttendanceDateTime ASC LIMIT ' . EXCEL_MAX_ROWS;
 $st = pdo()->prepare($sql);
 $st->execute($params);
 
-$filename = 'smartpss_asistencia_' . date('Ymd_His') . '.xls';
+$filename = 'smartpss_asistencia_' . date('Ymd_His') . '.csv';
 
-header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+header('Content-Type: text/csv; charset=UTF-8');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-echo "\xEF\xBB\xBF";
-echo '<table border="1">';
-echo '<thead><tr>';
+$output = fopen('php://output', 'w');
+
+// BOM UTF-8 para que Excel abra correctamente acentos y eñes sin advertir archivo corrupto.
+fwrite($output, "\xEF\xBB\xBF");
 
 $columns = [
     'PersonID',
@@ -80,19 +81,17 @@ $columns = [
     'SnapshotsPath',
 ];
 
-foreach ($columns as $column) {
-    echo '<th>' . h($column) . '</th>';
-}
-
-echo '</tr></thead><tbody>';
+fputcsv($output, $columns);
 
 while ($row = $st->fetch()) {
-    echo '<tr>';
+    $csvRow = [];
+
     foreach ($columns as $column) {
-        echo '<td style="mso-number-format:\'\\@\';">' . h($row[$column] ?? '') . '</td>';
+        $csvRow[] = (string)($row[$column] ?? '');
     }
-    echo '</tr>';
+
+    fputcsv($output, $csvRow);
 }
 
-echo '</tbody></table>';
+fclose($output);
 exit;
