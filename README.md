@@ -6,6 +6,7 @@ Este proyecto lee la tabla `attendancerecordinfo` que llena SmartPSS Lite en MyS
 - Editar registros mediante correcciones seguras.
 - Marcar registros como eliminados sin borrar la tabla original.
 - Generar reporte HTML y PDF con logos y encabezado oficial.
+- Exportar Excel compatible con SmartPSS Lite usando los nombres de columna originales.
 - Mantener auditoría de ediciones, eliminaciones y restauraciones.
 
 ## Importante
@@ -79,3 +80,7 @@ Reemplaza estos archivos con tus logos reales:
 ## Nota sobre fechas
 
 SmartPSS Lite suele guardar `AttendanceDateTime` como timestamp en milisegundos. El sistema lo convierte a formato normal para mostrarlo en pantalla y PDF.
+
+## Exportación para SmartPSS Lite
+
+Desde la pantalla de registros usa el botón **Excel SmartPSS** para descargar un archivo `.xls` con los filtros aplicados. El archivo conserva los encabezados originales de SmartPSS Lite: `PersonID`, `PersonName`, `PerSonCardNo`, `AttendanceDateTime`, `AttendanceState`, `AttendanceMethod`, `DeviceIPAddress`, `DeviceName` y `SnapshotsPath`, para facilitar una importación posterior.
